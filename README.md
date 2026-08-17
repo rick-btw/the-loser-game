@@ -1,144 +1,254 @@
-# 🎮 The Loser Game
-
-A Java implementation of a word guessing game with user authentication, scoring system, and leaderboard functionality.
-
-## 🎯 Game Rules
-
-- A random word is selected from the word bank
-- Player guesses letters one by one
-- ✅ **Correct guess**: Letter positions are revealed
-- ❌ **Wrong guess**: One letter of "LOSER" is added
-- **Winning**: Guess all letters before "LOSER" is fully formed
-- **Losing**: "LOSER" is fully formed before guessing the word
-
-### Attempt Limits
-- **Words ≤ 8 letters**: 5 mistakes allowed
-- **Words > 8 letters**: 10 mistakes allowed (every 2 mistakes = one letter of LOSER)
-
-## 🚀 How to Run
-
-### Prerequisites
-- Java 8 or higher
-- No additional dependencies required
-
-### Compilation and Execution
-```bash
-# Navigate to the src directory
-cd src
-
-# Compile all Java files
-javac *.java
-
-# Run the game
-java Main
+```
++-------------------------------------------------------------+
+|                                                             |
+|                       WELCOME TO THE                        |
+|                                                             |
+|    _                            ____                        |
+|   | |    ___  ___  ___ _ __   / ___| __ _ _ __ ___   ___    |
+|   | |   / _ \/ __|/ _ \ '__| | |  _ / _' | '_ ' _ \ / _ \   |
+|   | |__| (_) \__ \  __/ |    | |_| | (_| | | | | | |  __/   |
+|   |_____\___/|___/\___|_|     \____|\__,_|_| |_| |_|\___|   |
+|                                                             |
+|                         by Amirali                          |
++-------------------------------------------------------------+
+ \\________________________________________________________\\
+  \\______________________________________________________\\
 ```
 
-## 🎮 Game Features
+A console-based word guessing game written in Java. Players sign in to a
+persistent account, guess letters against a randomly selected word, and compete
+for position on a shared leaderboard. Each wrong guess spells out one more
+letter of the word "LOSER" — spell it completely and the game is over.
 
-### User System
-- **Signup**: Create account with username and password
-- **Login**: Authenticate with existing credentials
-- **Password Requirements**: 
-  - At least 8 characters
-  - Contains lowercase & uppercase letters
-  - Contains digits and special characters
-- **Password Encryption**: SHA-256 with salt
+The project was built as an AP Computer Science final project and is written in
+plain Java with no external dependencies.
 
-### Game Features
-- **ASCII Art Title**: Beautiful game title display
-- **Random Word Selection**: From predefined word bank
-- **Hint System**: Use points to reveal a random letter (once per game)
-- **Score System**: Points = word length
-- **LOSER Progress**: Visual display of mistake accumulation with hangman art
-- **Visual Hangman**: ASCII art representation of the game state with enhanced final "LOSER" display
+---
+
+## Contents
+
+- [Requirements](#requirements)
+- [Building and Running](#building-and-running)
+- [Gameplay](#gameplay)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Architecture](#architecture)
+- [Data Files](#data-files)
+- [Configuration](#configuration)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Requirements
+
+- **Java 11 or later.** The source uses `String.repeat(int)`, which was
+  introduced in Java 11 and will not compile on Java 8.
+- No third-party libraries, build tools, or package managers are required.
+
+---
+
+## Building and Running
+
+Run both commands from the **repository root**, not from inside `src/`:
+
+```bash
+javac -d out src/*.java
+```
+
+```bash
+java -cp out Main
+```
+
+The working directory matters. `words.txt` and `leaderboard.txt` are resolved
+relative to wherever the program is launched from, so starting the game from a
+different directory will cause it to create a fresh, empty set of data files
+instead of loading the existing ones.
+
+Compiled classes are written to `out/`, which is excluded from version control.
+
+---
+
+## Gameplay
+
+### Objective
+
+A word is drawn at random from the word bank and displayed as a row of blanks.
+Guess the word one letter at a time before your mistakes spell out "LOSER".
+
+### Turn Structure
+
+At each prompt, enter either a single letter or the word `hint`.
+
+- **Correct guess** — every occurrence of that letter is revealed in place.
+- **Incorrect guess** — one more letter of "LOSER" is filled in, and the
+  accompanying ASCII art advances to the next stage.
+
+Repeating a letter you have already guessed costs nothing; the game rejects the
+input and reprints your used letters.
+
+### Mistake Allowance
+
+The number of mistakes you are permitted scales with the length of the word:
+
+| Word length     | Mistakes allowed | Mistakes per "LOSER" letter |
+| --------------- | ---------------- | --------------------------- |
+| 8 letters or fewer | 5             | 1                           |
+| More than 8 letters | 10           | 2                           |
+
+Longer words therefore grant a larger margin for error while still requiring the
+same five-stage progression to lose.
+
+### Hints
+
+Typing `hint` reveals one random unguessed letter from the word.
+
+- Costs **1 point**, deducted from your score.
+- Limited to **one hint per game**.
+- Unavailable if your score is zero.
+
+### Scoring
+
+Winning a round awards points equal to the length of the word. Losing awards
+nothing. Your total score is what ranks you on the leaderboard.
+
+---
+
+## Features
+
+### Accounts and Authentication
+
+Players sign up with a username and password before playing. Accounts persist
+between sessions.
+
+- Usernames must be at least 3 characters and unique.
+- Passwords are stored as **SHA-256 hashes with a unique per-user salt**
+  generated from `SecureRandom`. Plaintext passwords are never written to disk.
+- Passwords may be changed from the user menu after confirming the current one.
+
+Password requirements — a password must be at least 8 characters and contain
+all of the following:
+
+- a lowercase letter
+- an uppercase letter
+- a digit
+- a special character from `@!#$%^&*()_+-=[]{}|;:,.<>?`
+
+### Word Bank
+
+Words are loaded from `words.txt` at startup. If the file does not exist, it is
+generated with a default set of 30 technology-related words. Players can
+contribute new words from the menu; duplicates are rejected via a custom
+`DuplicateWordException`.
 
 ### Leaderboard
-- **Automatic Sorting**: Descending order by score
-- **Persistent Storage**: Saved between sessions
-- **Real-time Updates**: After each game
 
-### Word Management
-- **Add New Words**: Users can contribute to the word bank
-- **Duplicate Prevention**: Automatic checking for existing words
-- **Default Words**: 30 programming-related words included
+Scores are tracked in a priority queue ordered by score descending, so rankings
+stay sorted without an explicit sort step. The leaderboard is written to disk
+after a score change and reloaded on the next launch.
 
-## 🏗 Architecture
+### Administrative Tools
 
-### OOP Principles
-- **Encapsulation**: Private fields with getters/setters
-- **Singleton Pattern**: WordBank, Leaderboard, AuthService
-- **Custom Exceptions**: InvalidPasswordException, DuplicateWordException
+An additional menu is available to the account with the username `admin`,
+offering a backup utility that writes a timestamped ZIP archive containing a
+generated `users.csv` export alongside copies of `words.txt` and
+`leaderboard.txt`.
 
-### Required Collections
-1. **Set<Character>**: Manage guessed letters (O(1) duplicate checking)
-2. **Map<String, User>**: User database (O(1) login operations)
-3. **PriorityQueue<User>**: Leaderboard (automatic descending order)
-4. **List<String>**: LOSER status display (V/X indicators)
+---
 
-### Classes
-- **Main**: Entry point that delegates to Menu
-- **Menu**: Handles all menu functionality and user interactions
-- **User**: User data and authentication
-- **Game**: Core game logic and state management
-- **WordBank**: Word collection and random selection
-- **Leaderboard**: Score tracking and display
-- **AuthService**: User authentication and registration
+## Project Structure
 
-## 📁 File Structure
 ```
-src/
-├── Main.java              # Entry point (delegates to Menu)
-├── Menu.java              # Menu system and user interactions
-├── User.java              # User class with encryption
-├── Game.java              # Game logic and mechanics
-├── WordBank.java          # Word management (Singleton)
-├── Leaderboard.java       # Score tracking (Singleton)
-├── AuthService.java       # Authentication (Singleton)
-├── InvalidPasswordException.java
-└── DuplicateWordException.java
-
-Generated Files:
-├── words.txt              # Word bank (auto-created)
-├── leaderboard.txt        # User data and scores
-└── *.class               # Compiled Java bytecode
+.
+├── src/
+│   ├── Main.java                      Entry point; delegates to Menu
+│   ├── Menu.java                      Menu system, user interaction, admin tools
+│   ├── Game.java                      Round logic, LOSER progression, ASCII art
+│   ├── User.java                      User model, hashing, password rules
+│   ├── AuthService.java               Signup and login (singleton)
+│   ├── WordBank.java                  Word storage and selection (singleton)
+│   ├── Leaderboard.java               Score tracking and persistence (singleton)
+│   ├── InvalidPasswordException.java  Thrown on password rule violations
+│   └── DuplicateWordException.java    Thrown when adding an existing word
+├── words.txt                          Word bank, one word per line
+├── leaderboard.txt                    Account records and scores
+└── README.md
 ```
 
-## 🎯 Sample Game Flow
+---
 
-1. **Start**: Run `java Main`
-2. **Signup**: Create account with valid credentials
-3. **Login**: Authenticate with your account
-4. **Start Game**: Choose option 1
-5. **Play**: Guess letters or use hints
-6. **Score**: Win to earn points based on word length
-7. **Leaderboard**: View rankings
-8. **Add Words**: Contribute to the word bank
+## Architecture
 
-## 🔧 Customization
+### Object-Oriented Design
 
-### Adding Default Words
-Edit the `createDefaultWordsFile()` method in `WordBank.java` to add more default words.
+- **Encapsulation** — all model state is private and exposed through accessors.
+- **Singleton pattern** — `WordBank`, `Leaderboard`, and `AuthService` each
+  expose a single shared instance via `getInstance()`, ensuring one authoritative
+  copy of the word list and user database at runtime.
+- **Custom exceptions** — `InvalidPasswordException` and `DuplicateWordException`
+  give validation failures meaningful types rather than generic errors.
+- **Separation of concerns** — `Main` holds no logic, `Menu` owns presentation
+  and input, and the game and data classes own behavior and state.
 
-### Changing Game Rules
-Modify the attempt limits in `Game.java`:
-- `getMaxAttempts()` method for different word length thresholds
-- `updateAttemptStatus()` for LOSER progression logic
+### Collections
 
-### Password Requirements
-Update the `isValidPassword()` method in `User.java` to change password complexity rules.
+| Collection            | Used for                | Rationale                                |
+| --------------------- | ----------------------- | ---------------------------------------- |
+| `Set<Character>`      | Guessed letters         | Constant-time duplicate-guess checking   |
+| `Map<String, User>`   | User database           | Constant-time lookup by username on login |
+| `PriorityQueue<User>` | Leaderboard             | Maintains descending score order automatically |
+| `List<String>`        | LOSER progress display  | Ordered, index-addressable status markers |
 
-## 🐛 Troubleshooting
+---
 
-### Common Issues
-- **"No words available"**: Add words via the menu or check `words.txt` file
-- **"User not found"**: Create account first via signup
-- **"Invalid password"**: Ensure password meets complexity requirements
+## Data Files
 
-### File Permissions
-Ensure the application has read/write permissions in the directory for:
-- `words.txt`
-- `leaderboard.txt`
+Both files are plain text and are created automatically if missing.
 
-## 🎉 Enjoy the Game!
+**`words.txt`** — one lowercase word per line.
 
-The Loser Game combines word guessing with strategic thinking and user management. Challenge yourself to guess words efficiently while managing your limited attempts! 
+**`leaderboard.txt`** — one account per line, pipe-delimited:
+
+```
+username|passwordHash|score|salt
+```
+
+Because this file stores credentials, it should not be shared. Deleting it
+resets all accounts and scores.
+
+---
+
+## Configuration
+
+| To change                | Edit                                                    |
+| ------------------------ | ------------------------------------------------------- |
+| Default word list        | `createDefaultWordsFile()` in `WordBank.java`           |
+| Mistake allowance        | `getMaxAttempts()` in `Game.java`                       |
+| LOSER progression rate   | `updateAttemptStatus()` in `Game.java`                  |
+| Password complexity rules| `isValidPassword()` in `User.java` and `AuthService.java` |
+| Hint cost                | `useHint()` in `User.java`                              |
+
+---
+
+## Troubleshooting
+
+**"No words available."**
+The word bank is empty. Add a word from the menu, or confirm that `words.txt`
+exists in the directory you launched the program from and is not empty.
+
+**"User not found."**
+No account exists under that username. Create one with the signup option. Note
+that usernames are case-sensitive.
+
+**"Invalid password."**
+The password does not satisfy every complexity requirement listed above. Note
+that a single character only counts toward one category.
+
+**Scores or accounts appear to have been lost.**
+The program was most likely launched from a different working directory and
+created a new set of data files there. Confirm you are running from the
+repository root and check for stray `words.txt` or `leaderboard.txt` files
+elsewhere in the project.
+
+**Changes cannot be saved.**
+The program requires read and write permission in its working directory in
+order to update `words.txt` and `leaderboard.txt`.
